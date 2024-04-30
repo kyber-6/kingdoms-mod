@@ -4,7 +4,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.pixeldreamstudios.kingdoms.Kingdoms;
 
 public class KingdomComponent implements TeamComponent {
-    private int team = Kingdoms.NO_TEAM;
+    private int team = Kingdoms.NO_KINGDOM;
 
 //    @Override
 //    public String getTeam() {

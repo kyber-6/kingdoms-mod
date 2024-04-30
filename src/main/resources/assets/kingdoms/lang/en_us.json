@@ -1,6 +1,6 @@
 {
-  "team.kingdoms.blue": "Thesium",
-  "team.kingdoms.red": "Krul'ath",
-  "join.kingdoms.blue": "Join the kindom of Thesium",
-  "join.kingdoms.red": "Join the kindom of Krul'ath"
+  "team.kingdoms.thesium": "Thesium",
+  "team.kingdoms.krulath": "Krul'ath",
+  "join.kingdoms.thesium": "Join the kindom of Thesium",
+  "join.kingdoms.krulath": "Join the kindom of Krul'ath"
 }

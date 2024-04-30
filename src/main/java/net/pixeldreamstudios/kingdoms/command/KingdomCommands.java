@@ -13,6 +13,37 @@ import static net.minecraft.commands.Commands.literal;
 public final class KingdomCommands {
     public static void init() {
         registerSetKingdomCommand();
+        registerShowKingdomCommand();
+    }
+
+    private static void registerShowKingdomCommand() {
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(literal("kingdom")
+                .then(literal("show")
+                        .then(argument("player", EntityArgument.player())
+                                .executes(context -> {
+                                    // get player
+                                    ServerPlayer serverPlayer = EntityArgument.getPlayer(context, "player");
+
+                                    // get team
+                                    int team = Kingdoms.TEAM_COMPONENT_COMPONENT_KEY.get(serverPlayer).getTeam();
+
+                                    // get team component
+                                    final Component teamName;
+                                    if (team == 0) {
+                                        teamName = Component.literal("No Kingdom");
+                                    } else if (team == 1) {
+                                        teamName = Component.translatable("team."+ Kingdoms.MOD_ID +  ".thesium");
+                                    } else if (team == 2) {
+                                        teamName = Component.translatable("team."+ Kingdoms.MOD_ID +  ".krulath");
+                                    }
+                                    else {
+                                        teamName = Component.literal("ILLEGAL VALUE ASSIGNED FOR KINGDOM");
+                                    }
+
+                                    context.getSource().sendSuccess(() -> Component.literal("Player " + serverPlayer.getScoreboardName() + " is part of the " + teamName.getString() + " kingdom."), true);
+                                    return 1;
+                                })))
+        ));
     }
 
     private static void registerSetKingdomCommand() {
@@ -27,25 +58,23 @@ public final class KingdomCommands {
                                                     // get team
                                                     int team = IntegerArgumentType.getInteger(context, "team");
 
-//											// get team component
+											        // get team component
                                                     final Component teamName;
                                                     if (team == 0) {
-                                                        teamName = Component.literal("No Team");
+                                                        teamName = Component.literal("No Kingdom");
                                                     } else if (team == 1) {
-                                                        teamName = Component.literal("Thesium");
+                                                        teamName = Component.translatable("team."+ Kingdoms.MOD_ID +  ".thesium");
                                                     } else if (team == 2) {
-                                                        teamName = Component.literal("Krul\'ath");
+                                                        teamName = Component.translatable("team."+ Kingdoms.MOD_ID +  ".krulath");
                                                     }
                                                     else {
-                                                        teamName = Component.literal("ILLEGAL VALUE ASSIGNED FOR TEAM");
+                                                        teamName = Component.literal("ILLEGAL VALUE ASSIGNED FOR KINGDOM");
                                                     }
 
                                                     // change player team
                                                     Kingdoms.TEAM_COMPONENT_COMPONENT_KEY.get(serverPlayer).setTeam(team);
-//											Minecraft.getInstance().player.getServer().sendSystemMessage(Component.literal("kingdom " + Kingdoms.TEAM_COMPONENT_COMPONENT_KEY.get(serverPlayer).getTeam()));
 
                                                     context.getSource().sendSuccess(() -> Component.literal("Player " + serverPlayer.getScoreboardName() + " now belongs to the " + teamName.getString() + " kingdom."), true);
-//											context.getSource().sendSuccess(() -> Component.literal("Called foo with bar"), false);
                                                     return 1;
                                                 }))))
         ));
