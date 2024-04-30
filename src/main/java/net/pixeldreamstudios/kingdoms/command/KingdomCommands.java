@@ -1,11 +1,14 @@
 package net.pixeldreamstudios.kingdoms.command;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.pixeldreamstudios.kingdoms.Kingdoms;
+import net.pixeldreamstudios.kingdoms.networking.NetworkingConstants;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
@@ -72,7 +75,11 @@ public final class KingdomCommands {
                                                     }
 
                                                     // change player team
-                                                    Kingdoms.TEAM_COMPONENT_COMPONENT_KEY.get(serverPlayer).setTeam(team);
+                                                    if (team == Kingdoms.THESIUM_KINGDOM) {
+                                                        ClientPlayNetworking.send(NetworkingConstants.JOINED_THESIUM_PACKET, PacketByteBufs.empty());
+                                                    } else if (team == Kingdoms.KRULATH_KINGDOM) {
+                                                        ClientPlayNetworking.send(NetworkingConstants.JOINED_KRULATH_PACKET, PacketByteBufs.empty());
+                                                    }
 
                                                     context.getSource().sendSuccess(() -> Component.literal("Player " + serverPlayer.getScoreboardName() + " now belongs to the " + teamName.getString() + " kingdom."), true);
                                                     return 1;

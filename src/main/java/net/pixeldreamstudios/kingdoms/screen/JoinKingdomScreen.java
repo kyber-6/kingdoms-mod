@@ -30,7 +30,6 @@ public class JoinKingdomScreen extends Screen {
         super.init();
         button1 = Button.builder(Component.translatable("team."+ Kingdoms.MOD_ID +  ".thesium"), button -> {
                     ClientPlayNetworking.send(NetworkingConstants.JOINED_THESIUM_PACKET, PacketByteBufs.empty());
-//                    Kingdoms.TEAM_COMPONENT_COMPONENT_KEY.get(Minecraft.getInstance().player).setTeam(Kingdoms.THESIUM_KINGDOM);
                     this.onClose();
                 })
                 .bounds(width / 2 - 205, height / 2, 200, 20)
@@ -38,7 +37,6 @@ public class JoinKingdomScreen extends Screen {
                 .build();
         button2 = Button.builder(Component.translatable("team."+ Kingdoms.MOD_ID +  ".krulath"), button -> {
                     ClientPlayNetworking.send(NetworkingConstants.JOINED_KRULATH_PACKET, PacketByteBufs.empty());
-//                    Kingdoms.TEAM_COMPONENT_COMPONENT_KEY.get(Minecraft.getInstance().player).setTeam(Kingdoms.KRULATH);
                     this.onClose();
                 })
                 .bounds(width / 2 + 5, height /2 , 200, 20)

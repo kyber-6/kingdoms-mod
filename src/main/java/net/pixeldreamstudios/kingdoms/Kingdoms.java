@@ -19,7 +19,7 @@ public class Kingdoms implements ModInitializer {
 	public static final String MOD_ID = "kingdoms";
 	public static final ComponentKey<TeamComponent> TEAM_COMPONENT_COMPONENT_KEY = ComponentRegistry.getOrCreate(new ResourceLocation(MOD_ID, "team"), TeamComponent.class);
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-	public static final int NO_KINGDOM = 0, THESIUM_KINGDOM = 1, KRULATH = 2;
+	public static final int NO_KINGDOM = 0, THESIUM_KINGDOM = 1, KRULATH_KINGDOM = 2;
 
 	@Override
 	public void onInitialize() {
@@ -47,7 +47,7 @@ public class Kingdoms implements ModInitializer {
 		});
 		ServerPlayNetworking.registerGlobalReceiver(NetworkingConstants.JOINED_KRULATH_PACKET, (server, player, handler, buf, responseSender) -> {
 			server.execute(() -> {
-				TEAM_COMPONENT_COMPONENT_KEY.get(player).setTeam(KRULATH);
+				TEAM_COMPONENT_COMPONENT_KEY.get(player).setTeam(KRULATH_KINGDOM);
 				server.tell(new TickTask(0, () -> player.displayClientMessage(Component.literal("Joined the Krul'ath Kingdom"), true)));
 			});
 		});
