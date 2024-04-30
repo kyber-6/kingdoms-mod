@@ -18,6 +18,9 @@
 		"main": [
 			"net.pixeldreamstudios.kingdoms.Kingdoms"
 		],
+		"client": [
+			"net.pixeldreamstudios.kingdoms.KingdomsClient"
+		],
 		"cardinal-components": [
 			"net.pixeldreamstudios.kingdoms.cardinalcomponents.Components"
 		]

@@ -1,27 +1,38 @@
 package net.pixeldreamstudios.kingdoms.cardinalcomponents;
 
 import net.minecraft.nbt.CompoundTag;
+import net.pixeldreamstudios.kingdoms.Kingdoms;
 
 public class KingdomComponent implements TeamComponent {
-    private String team = "no_team";
+    private int team = Kingdoms.NO_TEAM;
+
+//    @Override
+//    public String getTeam() {
+//        return team;
+//    }
+//
+//    @Override
+//    public String setTeam(String team) {
+//        return this.team = team;
+//    }
 
     @Override
-    public String getTeam() {
-        return team;
+    public int getTeam() {
+        return this.team;
     }
 
     @Override
-    public String setTeam(String team) {
-        return this.team = team;
+    public void setTeam(int team) {
+        this.team = team;
     }
 
     @Override
     public void readFromNbt(CompoundTag tag) {
-        this.team = tag.getString("teamTag");
+        this.team = tag.getInt("teamTag");
     }
 
     @Override
     public void writeToNbt(CompoundTag tag) {
-        tag.putString("teamTag", this.team);
+        tag.putInt("teamTag", this.team);
     }
 }
