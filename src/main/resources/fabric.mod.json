@@ -3,9 +3,9 @@
 	"id": "kingdoms",
 	"version": "${version}",
 	"name": "kingdoms",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "Set two kingdoms for event.",
 	"authors": [
-		"Me!"
+		"Kyber_6, Bandit-bytes"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
