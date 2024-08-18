@@ -4,7 +4,6 @@ import dev.onyxstudios.cca.api.v3.component.ComponentKey;
 import dev.onyxstudios.cca.api.v3.component.ComponentRegistry;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
-import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -15,9 +14,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.ServerScoreboard;
 import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.scores.PlayerTeam;
 import net.pixeldreamstudios.kingdoms.cardinalcomponents.TeamComponent;
 import net.pixeldreamstudios.kingdoms.command.KingdomCommands;
 import net.pixeldreamstudios.kingdoms.networking.NetworkingConstants;
@@ -91,29 +89,12 @@ public class Kingdoms implements ModInitializer {
 			});
 		});
 	}
-	private void registerKingDeathListener() {
-		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
-			TeamComponent teamComponent = Kingdoms.TEAM_COMPONENT_COMPONENT_KEY.get(oldPlayer);
 
-			if (teamComponent.isKing()) {
-				teamComponent.setTeamRespawnAllowed(false);
-
-				Component deathMessage = Component.literal("The King of the ")
-						.append(teamComponent.getTeam() == Kingdoms.THESIUM_KINGDOM ? "Thesium" : "Krul'ath")
-						.append(" Kingdom has fallen! Members of this kingdom, including the king, can no longer respawn.")
-						.withStyle(ChatFormatting.RED);
-
-				oldPlayer.getServer().getPlayerList().broadcastSystemMessage(deathMessage, false);
-
-				newPlayer.setGameMode(GameType.SPECTATOR);
-				newPlayer.sendSystemMessage(Component.literal("As the king, you can no longer respawn!").withStyle(ChatFormatting.RED));
-			}
-		});
-	}
 	private void registerRespawnHandler() {
 		ServerPlayerEvents.COPY_FROM.register((oldPlayer, newPlayer, alive) -> {
 			TeamComponent teamComponent = Kingdoms.TEAM_COMPONENT_COMPONENT_KEY.get(newPlayer);
 
+			// Enforce Spectator mode if the team is not allowed to respawn
 			if (!teamComponent.isTeamRespawnAllowed()) {
 				newPlayer.setGameMode(GameType.SPECTATOR);
 				newPlayer.sendSystemMessage(Component.literal("Your king is dead. You can no longer respawn!").withStyle(ChatFormatting.RED));
@@ -121,4 +102,31 @@ public class Kingdoms implements ModInitializer {
 		});
 	}
 
+	private void registerKingDeathListener() {
+		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
+			TeamComponent teamComponent = Kingdoms.TEAM_COMPONENT_COMPONENT_KEY.get(oldPlayer);
+
+			if (teamComponent.isKing()) {
+				// Ensure the king is placed into Spectator mode
+				newPlayer.setGameMode(GameType.SPECTATOR);
+				newPlayer.sendSystemMessage(Component.literal("As the king, you can no longer respawn!").withStyle(ChatFormatting.RED));
+
+				// Mark the entire team as unable to respawn, meaning they now have only one life
+				oldPlayer.getServer().getPlayerList().getPlayers().forEach(player -> {
+					TeamComponent playerTeamComponent = Kingdoms.TEAM_COMPONENT_COMPONENT_KEY.get(player);
+					if (playerTeamComponent.getTeam() == teamComponent.getTeam()) {
+						playerTeamComponent.setTeamRespawnAllowed(false);
+					}
+				});
+
+				// Broadcast to the server that the king has fallen
+				Component deathMessage = Component.literal("The King of the ")
+						.append(teamComponent.getTeam() == Kingdoms.THESIUM_KINGDOM ? "Thesium" : "Krul'ath")
+						.append(" Kingdom has fallen! Members of this kingdom now only have one life left.")
+						.withStyle(ChatFormatting.RED);
+
+				oldPlayer.getServer().getPlayerList().broadcastSystemMessage(deathMessage, false);
+			}
+		});
+	}
 }
