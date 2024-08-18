@@ -44,7 +44,7 @@ public class Kingdoms implements ModInitializer {
 		ServerPlayNetworking.registerGlobalReceiver(NetworkingConstants.JOINED_THESIUM_PACKET, (server, player, handler, buf, responseSender) -> {
 			server.execute(() -> {
 				TEAM_COMPONENT_COMPONENT_KEY.get(player).setTeam(THESIUM_KINGDOM);
-				player.getTabListDisplayName().getStyle().applyFormat(ChatFormatting.DARK_PURPLE);
+				player.getDisplayName().getStyle().applyFormat(ChatFormatting.DARK_PURPLE);
 				player.setRespawnPosition(player.level().dimension(), new BlockPos(-1467, 99, -1399), 0 ,true, true);
 				player.teleportTo(-1467, 99, -1399);
 				server.tell(new TickTask(0, () -> player.displayClientMessage(Component.literal("Joined the Thesium Kingdom"), true)));
@@ -53,7 +53,7 @@ public class Kingdoms implements ModInitializer {
 		ServerPlayNetworking.registerGlobalReceiver(NetworkingConstants.JOINED_KRULATH_PACKET, (server, player, handler, buf, responseSender) -> {
 			server.execute(() -> {
 				TEAM_COMPONENT_COMPONENT_KEY.get(player).setTeam(KRULATH_KINGDOM);
-				player.getTabListDisplayName().getStyle().applyFormat(ChatFormatting.GOLD);
+				player.getDisplayName().getStyle().applyFormat(ChatFormatting.GOLD);
 				player.setRespawnPosition(player.level().dimension(), new BlockPos(375, 167, 394), 0 ,true, true);
 				player.teleportTo(375, 167, 394);
 				server.tell(new TickTask(0, () -> player.displayClientMessage(Component.literal("Joined the Krul'ath Kingdom"), true)));
