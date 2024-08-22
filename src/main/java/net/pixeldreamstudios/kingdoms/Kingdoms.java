@@ -4,6 +4,7 @@ import dev.onyxstudios.cca.api.v3.component.ComponentKey;
 import dev.onyxstudios.cca.api.v3.component.ComponentRegistry;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -14,6 +15,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.ServerScoreboard;
 import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.scores.PlayerTeam;
 import net.pixeldreamstudios.kingdoms.cardinalcomponents.TeamComponent;
@@ -27,6 +30,7 @@ public class Kingdoms implements ModInitializer {
 	public static final ComponentKey<TeamComponent> TEAM_COMPONENT_COMPONENT_KEY = ComponentRegistry.getOrCreate(new ResourceLocation(MOD_ID, "team"), TeamComponent.class);
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	public static final int NO_KINGDOM = 0, THESIUM_KINGDOM = 1, KRULATH_KINGDOM = 2;
+	private static final int MAX_PLAYERS_PER_TEAM = 50;
 
 	@Override
 	public void onInitialize() {
@@ -36,6 +40,8 @@ public class Kingdoms implements ModInitializer {
 		registerRespawnHandler();
 		serverHandleFirstJoin();
 		registerKingDeathListener();
+		registerPersistentTeamMembership();
+		registerFriendlyFireListener();
 	}
 
 	private void serverHandleFirstJoin() {
@@ -45,51 +51,48 @@ public class Kingdoms implements ModInitializer {
 				ServerPlayNetworking.send(handler.getPlayer(), NetworkingConstants.JOIN_KINGDOM_SCREEN_PACKET, PacketByteBufs.empty());
 			}
 		}));
-
-		// receive client packet after the player has selected kingdom
 		ServerPlayNetworking.registerGlobalReceiver(NetworkingConstants.JOINED_THESIUM_PACKET, (server, player, handler, buf, responseSender) -> {
 			server.execute(() -> {
 				TEAM_COMPONENT_COMPONENT_KEY.get(player).setTeam(THESIUM_KINGDOM);
 
 				ServerScoreboard scoreboard = server.getScoreboard();
 				PlayerTeam team = scoreboard.getPlayerTeam("thesium_team");
-
 				if (team == null) {
 					team = scoreboard.addPlayerTeam("thesium_team");
 					team.setDisplayName(Component.literal("Thesium Kingdom"));
 					team.setColor(ChatFormatting.DARK_PURPLE);
 				}
-
-				scoreboard.addPlayerToTeam(player.getScoreboardName(), team);
-
-				player.setRespawnPosition(player.level().dimension(), new BlockPos(-1467, 99, -1399), 0, true, true);
-				player.teleportTo(-1467, 99, -1399);
-				server.tell(new TickTask(0, () -> player.displayClientMessage(Component.literal("Joined the Thesium Kingdom"), true)));
+				if (canJoinTeam(team)) {
+					addPlayerToTeam(player, team);
+					player.setRespawnPosition(player.level().dimension(), new BlockPos(-1467, 99, -1399), 0, true, true);
+					player.teleportTo(-1467, 99, -1399);
+					server.tell(new TickTask(0, () -> player.displayClientMessage(Component.literal("Joined the Thesium Kingdom"), true)));
+				} else {
+					player.displayClientMessage(Component.literal("This team is full!"), true);
+				}
 			});
 		});
-
 		ServerPlayNetworking.registerGlobalReceiver(NetworkingConstants.JOINED_KRULATH_PACKET, (server, player, handler, buf, responseSender) -> {
 			server.execute(() -> {
 				TEAM_COMPONENT_COMPONENT_KEY.get(player).setTeam(KRULATH_KINGDOM);
-
 				ServerScoreboard scoreboard = server.getScoreboard();
 				PlayerTeam team = scoreboard.getPlayerTeam("krulath_team");
-
 				if (team == null) {
 					team = scoreboard.addPlayerTeam("krulath_team");
 					team.setDisplayName(Component.literal("Krul'ath Kingdom"));
 					team.setColor(ChatFormatting.GOLD);
 				}
-
-				scoreboard.addPlayerToTeam(player.getScoreboardName(), team);
-
-				player.setRespawnPosition(player.level().dimension(), new BlockPos(375, 167, 394), 0, true, true);
-				player.teleportTo(375, 167, 394);
-				server.tell(new TickTask(0, () -> player.displayClientMessage(Component.literal("Joined the Krul'ath Kingdom"), true)));
+				if (canJoinTeam(team)) {
+					addPlayerToTeam(player, team);
+					player.setRespawnPosition(player.level().dimension(), new BlockPos(375, 167, 394), 0, true, true);
+					player.teleportTo(375, 167, 394);
+					server.tell(new TickTask(0, () -> player.displayClientMessage(Component.literal("Joined the Krul'ath Kingdom"), true)));
+				} else {
+					player.displayClientMessage(Component.literal("This team is full!"), true);
+				}
 			});
 		});
 	}
-
 	private void registerRespawnHandler() {
 		ServerPlayerEvents.COPY_FROM.register((oldPlayer, newPlayer, alive) -> {
 			TeamComponent teamComponent = Kingdoms.TEAM_COMPONENT_COMPONENT_KEY.get(newPlayer);
@@ -101,7 +104,6 @@ public class Kingdoms implements ModInitializer {
 			}
 		});
 	}
-
 	private void registerKingDeathListener() {
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
 			TeamComponent teamComponent = Kingdoms.TEAM_COMPONENT_COMPONENT_KEY.get(oldPlayer);
@@ -118,15 +120,51 @@ public class Kingdoms implements ModInitializer {
 						playerTeamComponent.setTeamRespawnAllowed(false);
 					}
 				});
-
 				// Broadcast to the server that the king has fallen
 				Component deathMessage = Component.literal("The King of the ")
 						.append(teamComponent.getTeam() == Kingdoms.THESIUM_KINGDOM ? "Thesium" : "Krul'ath")
 						.append(" Kingdom has fallen! Members of this kingdom now only have one life left.")
 						.withStyle(ChatFormatting.RED);
-
 				oldPlayer.getServer().getPlayerList().broadcastSystemMessage(deathMessage, false);
 			}
 		});
+	}
+	private void registerPersistentTeamMembership() {
+		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+			ServerPlayer player = handler.getPlayer();
+			TeamComponent teamComponent = TEAM_COMPONENT_COMPONENT_KEY.get(player);
+			if (teamComponent.getTeam() != NO_KINGDOM) {
+				ServerScoreboard scoreboard = server.getScoreboard();
+				PlayerTeam team = teamComponent.getTeam() == THESIUM_KINGDOM ? scoreboard.getPlayerTeam("thesium_team") : scoreboard.getPlayerTeam("krulath_team");
+				if (team != null) {
+					team.getPlayers().add(player.getScoreboardName());
+				}
+			}
+		});
+
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			ServerPlayer player = handler.getPlayer();
+			TeamComponent teamComponent = TEAM_COMPONENT_COMPONENT_KEY.get(player);
+		});
+	}
+	private void registerFriendlyFireListener() {
+		AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+			if (entity instanceof Player) {
+				Player target = (Player) entity;
+				if (arePlayersOnSameTeam(player, target)) {
+					return InteractionResult.FAIL; // Cancel the attack
+				}
+			}
+			return InteractionResult.PASS;
+		});
+	}
+	private boolean canJoinTeam(PlayerTeam team) {
+		return team.getPlayers().size() < MAX_PLAYERS_PER_TEAM;
+	}
+	private void addPlayerToTeam(Player player, PlayerTeam team) {
+		team.getPlayers().add(player.getScoreboardName());
+	}
+	private boolean arePlayersOnSameTeam(Player attacker, Player target) {
+		return attacker.getTeam() != null && attacker.getTeam().equals(target.getTeam());
 	}
 }
